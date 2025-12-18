@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+//teste push 
+
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
