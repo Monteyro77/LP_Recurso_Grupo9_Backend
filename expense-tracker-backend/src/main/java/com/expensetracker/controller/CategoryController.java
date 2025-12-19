@@ -1,54 +1,54 @@
 package com.expensetracker.controller;
 
 import com.expensetracker.dto.CategoryDTO;
+import com.expensetracker.model.User;
 import com.expensetracker.service.CategoryService;
+
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@CrossOrigin
 public class CategoryController {
-    
-    @Autowired
-    private CategoryService categoryService;
-    
+
+    private final CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
+
+    // Criar categoria global (ADMIN)
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CategoryDTO> createCategory(
-            @Valid @RequestBody CategoryDTO categoryDTO,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        CategoryDTO createdCategory = categoryService.createCategory(
-            categoryDTO, userDetails.getUsername());
+            @Valid @RequestBody CategoryDTO categoryDTO) {
+
+        CategoryDTO createdCategory = categoryService.createCategory(categoryDTO);
         return ResponseEntity.ok(createdCategory);
     }
-    
+
+    // Listar todas as categorias
     @GetMapping
-    public ResponseEntity<List<CategoryDTO>> getUserCategories(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        List<CategoryDTO> categories = categoryService.getUserCategories(
-            userDetails.getUsername());
+    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
+
+        List<CategoryDTO> categories = categoryService.getAllCategories();
         return ResponseEntity.ok(categories);
     }
-    
-    @PutMapping("/{id}")
-    public ResponseEntity<CategoryDTO> updateCategory(
-            @PathVariable Long id,
-            @Valid @RequestBody CategoryDTO categoryDTO,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        CategoryDTO updatedCategory = categoryService.updateCategory(
-            id, categoryDTO, userDetails.getUsername());
-        return ResponseEntity.ok(updatedCategory);
-    }
-    
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        categoryService.deleteCategory(id, userDetails.getUsername());
-        return ResponseEntity.noContent().build();
+
+    // Associar categoria ao utilizador autenticado
+    @PostMapping("/{categoryId}/assign")
+    public ResponseEntity<Void> assignCategoryToUser(
+            @PathVariable Long categoryId,
+            @AuthenticationPrincipal User user) {
+
+        categoryService.assignCategoryToUser(user.getId(), categoryId);
+        return ResponseEntity.ok().build();
     }
 }

@@ -6,7 +6,8 @@ import com.expensetracker.model.User;
 import com.expensetracker.model.Category;
 import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.expensetracker.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,92 +17,91 @@ import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService {
-    
-    @Autowired
-    private ExpenseRepository expenseRepository;
-    
-    @Autowired
-    private CategoryRepository categoryRepository;
-    
-    @Autowired
-    private UserService userService;
-    
-    // ... outros métodos permanecem iguais ...
-    
-    public List<ExpenseDTO> getExpensesWithFilters(String username, Long categoryId, 
-                                                   LocalDate startDate, LocalDate endDate,
-                                                   Double minAmount, Double maxAmount) {
-        User user = userService.findByUsername(username);
-        
-        // Converter Double para BigDecimal (maneira segura)
-        BigDecimal minAmountBD = null;
-        BigDecimal maxAmountBD = null;
-        
-        if (minAmount != null) {
-            minAmountBD = BigDecimal.valueOf(minAmount);
-        }
-        
-        if (maxAmount != null) {
-            maxAmountBD = BigDecimal.valueOf(maxAmount);
-        }
-        
-        List<Expense> expenses = expenseRepository.findWithFilters(
-            user.getId(), 
-            categoryId, 
-            startDate, 
-            endDate, 
-            null, // paymentMethod - pode ser null se não for filtrado
-            minAmountBD, 
-            maxAmountBD
-        );
-        
-        return expenses.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+
+    private final ExpenseRepository expenseRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+
+    public ExpenseService(ExpenseRepository expenseRepository,
+                          CategoryRepository categoryRepository,
+                          UserRepository userRepository) {
+        this.expenseRepository = expenseRepository;
+        this.categoryRepository = categoryRepository;
+        this.userRepository = userRepository;
     }
-    
-    // Método adicional para filtros mais completos (opcional)
-    public List<ExpenseDTO> getExpensesWithAllFilters(
-            String username, 
-            Long categoryId, 
-            LocalDate startDate, 
+
+    // Criar despesa
+    public ExpenseDTO createExpense(ExpenseDTO dto, Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        Expense expense = new Expense();
+        expense.setDescription(dto.getDescription());
+        expense.setAmount(dto.getAmount());
+        expense.setDate(dto.getDate());
+        expense.setPaymentMethod(dto.getPaymentMethod());
+        expense.setUser(user);
+        expense.setCategory(category);
+
+        Expense saved = expenseRepository.save(expense);
+        return mapToDTO(saved);
+    }
+
+    // Listar despesas do utilizador
+    public List<ExpenseDTO> getUserExpenses(Long userId) {
+
+        List<Expense> expenses = expenseRepository.findByUserId(userId);
+        return expenses.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Filtrar despesas 
+    public List<ExpenseDTO> filterExpenses(
+            Long userId,
+            Long categoryId,
+            LocalDate startDate,
             LocalDate endDate,
             String paymentMethod,
-            Double minAmount, 
+            Double minAmount,
             Double maxAmount) {
-        
-        User user = userService.findByUsername(username);
-        
-        // Converter Double para BigDecimal
-        BigDecimal minAmountBD = (minAmount != null) ? BigDecimal.valueOf(minAmount) : null;
-        BigDecimal maxAmountBD = (maxAmount != null) ? BigDecimal.valueOf(maxAmount) : null;
-        
+
+        BigDecimal minBD = (minAmount != null) ? BigDecimal.valueOf(minAmount) : null;
+        BigDecimal maxBD = (maxAmount != null) ? BigDecimal.valueOf(maxAmount) : null;
+
         List<Expense> expenses = expenseRepository.findWithFilters(
-            user.getId(), 
-            categoryId, 
-            startDate, 
-            endDate, 
-            paymentMethod,
-            minAmountBD, 
-            maxAmountBD
+                userId,
+                categoryId,
+                startDate,
+                endDate,
+                paymentMethod,
+                minBD,
+                maxBD
         );
-        
+
         return expenses.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
-    
-    // Método para pesquisa por descrição
-    public List<ExpenseDTO> searchExpensesByDescription(String username, String searchTerm) {
-        User user = userService.findByUsername(username);
-        List<Expense> expenses = expenseRepository.searchByDescription(user.getId(), searchTerm);
-        
+
+    // Pesquisar despesas por descrição
+    public List<ExpenseDTO> searchExpensesByDescription(Long userId, String query) {
+
+        List<Expense> expenses =
+                expenseRepository.searchByDescription(userId, query);
+
         return expenses.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
-    
-    private ExpenseDTO convertToDTO(Expense expense) {
+
+    // Mapper privado
+    private ExpenseDTO mapToDTO(Expense expense) {
+
         ExpenseDTO dto = new ExpenseDTO();
         dto.setId(expense.getId());
         dto.setDescription(expense.getDescription());
@@ -109,6 +109,7 @@ public class ExpenseService {
         dto.setDate(expense.getDate());
         dto.setPaymentMethod(expense.getPaymentMethod());
         dto.setCategoryId(expense.getCategory().getId());
+
         return dto;
     }
 }

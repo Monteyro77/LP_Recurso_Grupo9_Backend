@@ -2,90 +2,89 @@ package com.expensetracker.service;
 
 import com.expensetracker.dto.CategoryDTO;
 import com.expensetracker.model.Category;
+import com.expensetracker.model.CategoryUser;
 import com.expensetracker.model.User;
 import com.expensetracker.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.expensetracker.repository.CategoryUserRepository;
+import com.expensetracker.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
-    
-    @Autowired
-    private CategoryRepository categoryRepository;
-    
-    @Autowired
-    private UserService userService;
-    
-    public CategoryDTO createCategory(CategoryDTO categoryDTO, String username) {
-        User user = userService.findByUsername(username);
-        
-        // Check if category name already exists for this user
-        if (categoryRepository.existsByNameAndUserId(categoryDTO.getName(), user.getId())) {
+
+    private final CategoryRepository categoryRepository;
+    private final CategoryUserRepository categoryUserRepository;
+    private final UserRepository userRepository;
+
+    public CategoryService(CategoryRepository categoryRepository,
+                           CategoryUserRepository categoryUserRepository,
+                           UserRepository userRepository) {
+        this.categoryRepository = categoryRepository;
+        this.categoryUserRepository = categoryUserRepository;
+        this.userRepository = userRepository;
+    }
+
+    // Criar categoria global (ADMIN)
+    @Transactional
+    public CategoryDTO createCategory(CategoryDTO dto) {
+
+        if (categoryRepository.existsByName(dto.getName())) {
             throw new RuntimeException("Category with this name already exists");
         }
-        
+
         Category category = new Category();
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        category.setColor(categoryDTO.getColor());
-        category.setUser(user);
-        
-        Category savedCategory = categoryRepository.save(category);
-        return convertToDTO(savedCategory);
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        category.setColor(dto.getColor());
+
+        Category saved = categoryRepository.save(category);
+        return mapToDTO(saved);
     }
-    
-    public List<CategoryDTO> getUserCategories(String username) {
-        User user = userService.findByUsername(username);
-        List<Category> categories = categoryRepository.findByUserId(user.getId());
-        return categories.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+
+    // Listar todas as categorias globais
+    @Transactional(readOnly = true)
+    public List<CategoryDTO> getAllCategories() {
+
+        return categoryRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
-    
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO, String username) {
-        User user = userService.findByUsername(username);
-        Category category = categoryRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Category not found"));
-        
-        // Verify category belongs to user
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Category does not belong to user");
+
+    // Associar categoria ao utilizador
+    @Transactional
+    public void assignCategoryToUser(Long userId, Long categoryId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        boolean alreadyAssigned =
+                categoryUserRepository.existsByUserAndCategory(user, category);
+
+        if (alreadyAssigned) {
+            throw new RuntimeException("Category already assigned to user");
         }
-        
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        category.setColor(categoryDTO.getColor());
-        
-        Category updatedCategory = categoryRepository.save(category);
-        return convertToDTO(updatedCategory);
+
+        CategoryUser categoryUser = new CategoryUser(user, category);
+        categoryUserRepository.save(categoryUser);
     }
-    
-    public void deleteCategory(Long id, String username) {
-        User user = userService.findByUsername(username);
-        Category category = categoryRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Category not found"));
-        
-        // Verify category belongs to user
-        if (!category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Category does not belong to user");
-        }
-        
-        // Check if category has expenses
-        if (category.getExpenses() != null && !category.getExpenses().isEmpty()) {
-            throw new RuntimeException("Cannot delete category with existing expenses");
-        }
-        
-        categoryRepository.delete(category);
-    }
-    
-    private CategoryDTO convertToDTO(Category category) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-        dto.setDescription(category.getDescription());
-        dto.setColor(category.getColor());
-        return dto;
+
+    // Mapper Entity -> DTO
+    private CategoryDTO mapToDTO(Category category) {
+
+        return new CategoryDTO(
+                category.getId(),
+                category.getName(),
+                category.getDescription(),
+                category.getColor()
+        );
     }
 }
