@@ -7,35 +7,34 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "expenses")
 public class Expense {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String description;
-    
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
-    
+
     @Column(nullable = false)
     private LocalDate date;
-    
+
     @Column(name = "payment_method")
-    private String paymentMethod; // "cash", "credit_card", "debit_card", "transfer"
-    
-    @ManyToOne
+    private String paymentMethod;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
-    
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
-    // Construtores
+
     public Expense() {}
-    
-    public Expense(String description, BigDecimal amount, LocalDate date, 
+
+    public Expense(String description, BigDecimal amount, LocalDate date,
                    String paymentMethod, Category category, User user) {
         this.description = description;
         this.amount = amount;
@@ -43,7 +42,7 @@ public class Expense {
         this.paymentMethod = paymentMethod;
         this.category = category;
         this.user = user;
-    }
+     }
     
     // Getters e Setters
     public Long getId() { return id; }
