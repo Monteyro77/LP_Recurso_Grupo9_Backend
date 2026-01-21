@@ -23,46 +23,47 @@ public class ExpenseController {
         this.expenseService = expenseService;
     }
 
-    // Criar despesa
     @PostMapping
     public ResponseEntity<ExpenseDTO> createExpense(
             @Valid @RequestBody ExpenseDTO expenseDTO,
             @AuthenticationPrincipal User user) {
 
-        ExpenseDTO created = expenseService.createExpense(expenseDTO, user.getId());
-        return ResponseEntity.ok(created);
+        if (user == null) return ResponseEntity.status(401).build();
+
+        return ResponseEntity.ok(expenseService.createExpense(expenseDTO, user.getId()));
     }
 
-    // Listar despesas do utilizador
     @GetMapping
     public ResponseEntity<List<ExpenseDTO>> getUserExpenses(
             @AuthenticationPrincipal User user) {
 
+        if (user == null) return ResponseEntity.status(401).build();
+
         return ResponseEntity.ok(expenseService.getUserExpenses(user.getId()));
     }
 
-    // Editar despesa
     @PutMapping("/{id}")
     public ResponseEntity<ExpenseDTO> updateExpense(
             @PathVariable Long id,
             @Valid @RequestBody ExpenseDTO expenseDTO,
             @AuthenticationPrincipal User user) {
 
-        ExpenseDTO updated = expenseService.updateExpense(id, expenseDTO, user.getId());
-        return ResponseEntity.ok(updated);
+        if (user == null) return ResponseEntity.status(401).build();
+
+        return ResponseEntity.ok(expenseService.updateExpense(id, expenseDTO, user.getId()));
     }
 
-    // Apagar despesa
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteExpense(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
 
+        if (user == null) return ResponseEntity.status(401).build();
+
         expenseService.deleteExpense(id, user.getId());
         return ResponseEntity.noContent().build();
     }
 
-    // Filtrar despesas
     @GetMapping("/filter")
     public ResponseEntity<List<ExpenseDTO>> filterExpenses(
             @AuthenticationPrincipal User user,
@@ -75,6 +76,8 @@ public class ExpenseController {
             @RequestParam(required = false) Double minAmount,
             @RequestParam(required = false) Double maxAmount) {
 
+        if (user == null) return ResponseEntity.status(401).build();
+
         return ResponseEntity.ok(expenseService.filterExpenses(
                 user.getId(),
                 categoryId,
@@ -86,14 +89,13 @@ public class ExpenseController {
         ));
     }
 
-    // Pesquisar por descrição
     @GetMapping("/search")
     public ResponseEntity<List<ExpenseDTO>> searchExpenses(
             @AuthenticationPrincipal User user,
             @RequestParam String query) {
 
-        return ResponseEntity.ok(
-                expenseService.searchExpensesByDescription(user.getId(), query)
-        );
+        if (user == null) return ResponseEntity.status(401).build();
+
+        return ResponseEntity.ok(expenseService.searchExpensesByDescription(user.getId(), query));
     }
 }

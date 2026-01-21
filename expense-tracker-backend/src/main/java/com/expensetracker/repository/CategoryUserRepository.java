@@ -18,4 +18,3 @@ public interface CategoryUserRepository extends JpaRepository<CategoryUser, Long
     // Listar categorias associadas a um utilizador
     List<CategoryUser> findByUser(User user);
 }
-

@@ -1,12 +1,5 @@
 package com.expensetracker.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
 import com.expensetracker.dto.ExpenseDTO;
 import com.expensetracker.model.Category;
 import com.expensetracker.model.Expense;
@@ -14,6 +7,12 @@ import com.expensetracker.model.User;
 import com.expensetracker.repository.CategoryRepository;
 import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.UserRepository;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService {
@@ -30,9 +29,7 @@ public class ExpenseService {
         this.userRepository = userRepository;
     }
 
-    // Criar despesa
     public ExpenseDTO createExpense(ExpenseDTO dto, Long userId) {
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -47,65 +44,20 @@ public class ExpenseService {
         expense.setUser(user);
         expense.setCategory(category);
 
-        Expense saved = expenseRepository.save(expense);
-        return mapToDTO(saved);
+        return mapToDTO(expenseRepository.save(expense));
     }
 
-    // Listar despesas do utilizador
     public List<ExpenseDTO> getUserExpenses(Long userId) {
-
-        List<Expense> expenses = expenseRepository.findByUserId(userId);
-        return expenses.stream()
+        return expenseRepository.findByUserId(userId)
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Filtrar despesas 
-    public List<ExpenseDTO> filterExpenses(
-            Long userId,
-            Long categoryId,
-            LocalDate startDate,
-            LocalDate endDate,
-            String paymentMethod,
-            Double minAmount,
-            Double maxAmount) {
-
-        BigDecimal minBD = (minAmount != null) ? BigDecimal.valueOf(minAmount) : null;
-        BigDecimal maxBD = (maxAmount != null) ? BigDecimal.valueOf(maxAmount) : null;
-
-        List<Expense> expenses = expenseRepository.findWithFilters(
-                userId,
-                categoryId,
-                startDate,
-                endDate,
-                paymentMethod,
-                minBD,
-                maxBD
-        );
-
-        return expenses.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    // Pesquisar despesas por descrição
-    public List<ExpenseDTO> searchExpensesByDescription(Long userId, String query) {
-
-        List<Expense> expenses =
-                expenseRepository.searchByDescription(userId, query);
-
-        return expenses.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-    
-    // Editar despesa
     public ExpenseDTO updateExpense(Long expenseId, ExpenseDTO dto, Long userId) {
-
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
-        // Garante que a despesa é do utilizador autenticado
         if (!expense.getUser().getId().equals(userId)) {
             throw new RuntimeException("Expense does not belong to user");
         }
@@ -119,27 +71,53 @@ public class ExpenseService {
         expense.setPaymentMethod(dto.getPaymentMethod());
         expense.setCategory(category);
 
-        Expense updated = expenseRepository.save(expense);
-        return mapToDTO(updated);
+        return mapToDTO(expenseRepository.save(expense));
     }
 
-    // Apagar despesa
     public void deleteExpense(Long expenseId, Long userId) {
-
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
-        // Garante que a despesa é do utilizador autenticado
         if (!expense.getUser().getId().equals(userId)) {
             throw new RuntimeException("Expense does not belong to user");
         }
 
         expenseRepository.delete(expense);
     }
-    
-    // Mapper privado
-    private ExpenseDTO mapToDTO(Expense expense) {
 
+    public List<ExpenseDTO> filterExpenses(
+            Long userId,
+            Long categoryId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String paymentMethod,
+            Double minAmount,
+            Double maxAmount) {
+
+        BigDecimal minBD = (minAmount != null) ? BigDecimal.valueOf(minAmount) : null;
+        BigDecimal maxBD = (maxAmount != null) ? BigDecimal.valueOf(maxAmount) : null;
+
+        return expenseRepository.findWithFilters(
+                        userId,
+                        categoryId,
+                        startDate,
+                        endDate,
+                        paymentMethod,
+                        minBD,
+                        maxBD
+                ).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExpenseDTO> searchExpensesByDescription(Long userId, String query) {
+        return expenseRepository.searchByDescription(userId, query)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private ExpenseDTO mapToDTO(Expense expense) {
         ExpenseDTO dto = new ExpenseDTO();
         dto.setId(expense.getId());
         dto.setDescription(expense.getDescription());
@@ -147,7 +125,6 @@ public class ExpenseService {
         dto.setDate(expense.getDate());
         dto.setPaymentMethod(expense.getPaymentMethod());
         dto.setCategoryId(expense.getCategory().getId());
-
         return dto;
     }
 }
