@@ -1,19 +1,19 @@
 package com.expensetracker.service;
 
-import com.expensetracker.dto.ExpenseDTO;
-import com.expensetracker.model.Expense;
-import com.expensetracker.model.User;
-import com.expensetracker.model.Category;
-import com.expensetracker.repository.ExpenseRepository;
-import com.expensetracker.repository.CategoryRepository;
-import com.expensetracker.repository.UserRepository;
-
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.expensetracker.dto.ExpenseDTO;
+import com.expensetracker.model.Category;
+import com.expensetracker.model.Expense;
+import com.expensetracker.model.User;
+import com.expensetracker.repository.CategoryRepository;
+import com.expensetracker.repository.ExpenseRepository;
+import com.expensetracker.repository.UserRepository;
 
 @Service
 public class ExpenseService {
