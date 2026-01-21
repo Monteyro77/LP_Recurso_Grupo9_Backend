@@ -98,7 +98,45 @@ public class ExpenseService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
+    
+    // Editar despesa
+    public ExpenseDTO updateExpense(Long expenseId, ExpenseDTO dto, Long userId) {
 
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new RuntimeException("Expense not found"));
+
+        // Garante que a despesa é do utilizador autenticado
+        if (!expense.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Expense does not belong to user");
+        }
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        expense.setDescription(dto.getDescription());
+        expense.setAmount(dto.getAmount());
+        expense.setDate(dto.getDate());
+        expense.setPaymentMethod(dto.getPaymentMethod());
+        expense.setCategory(category);
+
+        Expense updated = expenseRepository.save(expense);
+        return mapToDTO(updated);
+    }
+
+    // Apagar despesa
+    public void deleteExpense(Long expenseId, Long userId) {
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new RuntimeException("Expense not found"));
+
+        // Garante que a despesa é do utilizador autenticado
+        if (!expense.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Expense does not belong to user");
+        }
+
+        expenseRepository.delete(expense);
+    }
+    
     // Mapper privado
     private ExpenseDTO mapToDTO(Expense expense) {
 

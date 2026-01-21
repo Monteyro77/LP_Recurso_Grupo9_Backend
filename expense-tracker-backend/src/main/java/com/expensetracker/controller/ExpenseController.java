@@ -3,9 +3,8 @@ package com.expensetracker.controller;
 import com.expensetracker.dto.ExpenseDTO;
 import com.expensetracker.model.User;
 import com.expensetracker.service.ExpenseService;
-
 import jakarta.validation.Valid;
-
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,8 +38,28 @@ public class ExpenseController {
     public ResponseEntity<List<ExpenseDTO>> getUserExpenses(
             @AuthenticationPrincipal User user) {
 
-        List<ExpenseDTO> expenses = expenseService.getUserExpenses(user.getId());
-        return ResponseEntity.ok(expenses);
+        return ResponseEntity.ok(expenseService.getUserExpenses(user.getId()));
+    }
+
+    // Editar despesa
+    @PutMapping("/{id}")
+    public ResponseEntity<ExpenseDTO> updateExpense(
+            @PathVariable Long id,
+            @Valid @RequestBody ExpenseDTO expenseDTO,
+            @AuthenticationPrincipal User user) {
+
+        ExpenseDTO updated = expenseService.updateExpense(id, expenseDTO, user.getId());
+        return ResponseEntity.ok(updated);
+    }
+
+    // Apagar despesa
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteExpense(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        expenseService.deleteExpense(id, user.getId());
+        return ResponseEntity.noContent().build();
     }
 
     // Filtrar despesas
@@ -48,13 +67,15 @@ public class ExpenseController {
     public ResponseEntity<List<ExpenseDTO>> filterExpenses(
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String paymentMethod,
             @RequestParam(required = false) Double minAmount,
             @RequestParam(required = false) Double maxAmount) {
 
-        List<ExpenseDTO> expenses = expenseService.filterExpenses(
+        return ResponseEntity.ok(expenseService.filterExpenses(
                 user.getId(),
                 categoryId,
                 startDate,
@@ -62,20 +83,17 @@ public class ExpenseController {
                 paymentMethod,
                 minAmount,
                 maxAmount
-        );
-
-        return ResponseEntity.ok(expenses);
+        ));
     }
 
-    // Pesquisar despesas por descrição
+    // Pesquisar por descrição
     @GetMapping("/search")
     public ResponseEntity<List<ExpenseDTO>> searchExpenses(
             @AuthenticationPrincipal User user,
             @RequestParam String query) {
 
-        List<ExpenseDTO> expenses =
-                expenseService.searchExpensesByDescription(user.getId(), query);
-
-        return ResponseEntity.ok(expenses);
+        return ResponseEntity.ok(
+                expenseService.searchExpensesByDescription(user.getId(), query)
+        );
     }
 }
