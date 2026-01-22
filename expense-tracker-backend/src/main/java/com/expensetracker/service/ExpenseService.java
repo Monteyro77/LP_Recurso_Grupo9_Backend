@@ -29,7 +29,9 @@ public class ExpenseService {
         this.userRepository = userRepository;
     }
 
+    // Criar despesa
     public ExpenseDTO createExpense(ExpenseDTO dto, Long userId) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -47,6 +49,7 @@ public class ExpenseService {
         return mapToDTO(expenseRepository.save(expense));
     }
 
+    // Listar despesas do utilizador
     public List<ExpenseDTO> getUserExpenses(Long userId) {
         return expenseRepository.findByUserId(userId)
                 .stream()
@@ -54,10 +57,13 @@ public class ExpenseService {
                 .collect(Collectors.toList());
     }
 
+    // Editar despesa
     public ExpenseDTO updateExpense(Long expenseId, ExpenseDTO dto, Long userId) {
+
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
+        // Garante que a despesa é do utilizador autenticado
         if (!expense.getUser().getId().equals(userId)) {
             throw new RuntimeException("Expense does not belong to user");
         }
@@ -74,10 +80,13 @@ public class ExpenseService {
         return mapToDTO(expenseRepository.save(expense));
     }
 
+    // Apagar despesa
     public void deleteExpense(Long expenseId, Long userId) {
+
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
+        // Garante que a despesa é do utilizador autenticado
         if (!expense.getUser().getId().equals(userId)) {
             throw new RuntimeException("Expense does not belong to user");
         }
@@ -85,6 +94,7 @@ public class ExpenseService {
         expenseRepository.delete(expense);
     }
 
+    // Filtrar despesas
     public List<ExpenseDTO> filterExpenses(
             Long userId,
             Long categoryId,
@@ -110,6 +120,7 @@ public class ExpenseService {
                 .collect(Collectors.toList());
     }
 
+    // Pesquisar despesas por descrição
     public List<ExpenseDTO> searchExpensesByDescription(Long userId, String query) {
         return expenseRepository.searchByDescription(userId, query)
                 .stream()
@@ -117,6 +128,7 @@ public class ExpenseService {
                 .collect(Collectors.toList());
     }
 
+    // Mapper privado
     private ExpenseDTO mapToDTO(Expense expense) {
         ExpenseDTO dto = new ExpenseDTO();
         dto.setId(expense.getId());

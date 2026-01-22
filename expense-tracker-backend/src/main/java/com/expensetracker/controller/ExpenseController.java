@@ -23,6 +23,7 @@ public class ExpenseController {
         this.expenseService = expenseService;
     }
 
+    // Criar despesa
     @PostMapping
     public ResponseEntity<ExpenseDTO> createExpense(
             @Valid @RequestBody ExpenseDTO expenseDTO,
@@ -30,9 +31,11 @@ public class ExpenseController {
 
         if (user == null) return ResponseEntity.status(401).build();
 
-        return ResponseEntity.ok(expenseService.createExpense(expenseDTO, user.getId()));
+        ExpenseDTO created = expenseService.createExpense(expenseDTO, user.getId());
+        return ResponseEntity.ok(created);
     }
 
+    // Listar despesas do utilizador
     @GetMapping
     public ResponseEntity<List<ExpenseDTO>> getUserExpenses(
             @AuthenticationPrincipal User user) {
@@ -42,6 +45,7 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.getUserExpenses(user.getId()));
     }
 
+    // Editar despesa
     @PutMapping("/{id}")
     public ResponseEntity<ExpenseDTO> updateExpense(
             @PathVariable Long id,
@@ -50,9 +54,11 @@ public class ExpenseController {
 
         if (user == null) return ResponseEntity.status(401).build();
 
-        return ResponseEntity.ok(expenseService.updateExpense(id, expenseDTO, user.getId()));
+        ExpenseDTO updated = expenseService.updateExpense(id, expenseDTO, user.getId());
+        return ResponseEntity.ok(updated);
     }
 
+    // Apagar despesa
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteExpense(
             @PathVariable Long id,
@@ -64,6 +70,7 @@ public class ExpenseController {
         return ResponseEntity.noContent().build();
     }
 
+    // Filtrar despesas
     @GetMapping("/filter")
     public ResponseEntity<List<ExpenseDTO>> filterExpenses(
             @AuthenticationPrincipal User user,
@@ -89,6 +96,7 @@ public class ExpenseController {
         ));
     }
 
+    // Pesquisar por descrição
     @GetMapping("/search")
     public ResponseEntity<List<ExpenseDTO>> searchExpenses(
             @AuthenticationPrincipal User user,
@@ -96,6 +104,8 @@ public class ExpenseController {
 
         if (user == null) return ResponseEntity.status(401).build();
 
-        return ResponseEntity.ok(expenseService.searchExpensesByDescription(user.getId(), query));
+        return ResponseEntity.ok(
+                expenseService.searchExpensesByDescription(user.getId(), query)
+        );
     }
 }
